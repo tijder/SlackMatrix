@@ -1,0 +1,17 @@
+{
+  "rooms": [
+    {
+      "matrix_room_id": "",
+      "slack_room_id": ""
+    },
+    {
+      "matrix_room_id": "",
+      "slack_room_id": ""
+    }
+  ],
+  "matrix_token": "",
+  "matrix_user_id": "",
+  "matrix_http_server": "",
+  "slack_token": "",
+  "slack_user_id": ""
+}
