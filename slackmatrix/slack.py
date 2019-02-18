@@ -38,6 +38,13 @@ class Slack:
             as_user=True
         )
 
+    def __mark_read(self, room_id: str, ts: str):
+        self.sc.api_call(
+            "im.mark",
+            channel=room_id,
+            ts=ts
+        )
+
     def start_listening(self):
         if self.sc.rtm_connect(with_team_state=False, reconnect=True):
             while self.sc.server.connected is True:
@@ -60,3 +67,6 @@ class Slack:
                     avatar_url = user['user']['profile']['image_192']
 
                 self.matrix.send_message(self.bridge[event['channel']], event['text'], name=name, avatar_url=avatar_url)
+
+                if 'ts' in event:
+                    self.__mark_read(event['channel'], event['ts'])
