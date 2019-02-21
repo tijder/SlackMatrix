@@ -17,7 +17,7 @@ class Matrix:
     def __init__(self, user_id: str, http_matrix_server: str, token: str) -> None:
         super().__init__()
         self.user_id = user_id
-        self.client = MatrixClient(http_matrix_server, token=token, user_id=user_id)
+        self._client = MatrixClient(http_matrix_server, token=token, user_id=user_id)
         self.__load_cache()
 
     def __load_cache(self):
@@ -40,7 +40,7 @@ class Matrix:
         self._bridge[matrix_room_id] = slack_room_id
 
     def send_message(self, room_id: str, text: str, name: str = None, avatar_url: str = None, file_url: str = None, file_name: str = None, file_mimetype: str = None, file_authorization: str = None):
-        room = Room(self.client, room_id)
+        room = Room(self._client, room_id)
         current_avatar_url = None
         current_name = None
         avatar_uri = None
@@ -55,7 +55,7 @@ class Matrix:
                 print("Use cache avatar for an user " + avatar_uri + " (" + avatar_url + ")")
             else:
                 avatar_content = request.urlopen(avatar_url).read()
-                avatar_uri = self.client.upload(avatar_content, 'image/png')
+                avatar_uri = self._client.upload(avatar_content, 'image/png')
                 self._cache['uploaded_avatars'][avatar_url] = avatar_uri
                 print("Uploaded a new avatar for an user " + avatar_uri + " (" + avatar_url + ")")
         if (name is not None and name is not current_name) or avatar_uri is not None:
@@ -67,7 +67,7 @@ class Matrix:
             rq = Request(file_url)
             rq.add_header('Authorization', file_authorization)
             file_content = urlopen(rq).read()
-            file_uri = self.client.upload(file_content, file_mimetype)
+            file_uri = self._client.upload(file_content, file_mimetype)
             if file_mimetype in ['image/png', 'image/jpeg']:
                 room.send_image(file_uri, file_name)
             else:
@@ -76,13 +76,17 @@ class Matrix:
             room.send_text(text)
 
     def start_listening(self):
-        self.client.add_listener(self.__on_event)
+        self._client.add_listener(self.__on_event)
         # room.add_listener(on_message)
         # client.add_listener(on_message)
-        self.client.start_listener_thread()
+        self._client.start_listener_thread()
 
     def __on_event(self, event):
         print(event)
-        if event['type'] == "m.room.message" and event['sender'] != self.user_id:
-            if event['room_id'] in self._bridge and event['content']['msgtype'] == "m.text":
+        if event['type'] == "m.room.message" and event['sender'] != self.user_id and event['room_id'] in self._bridge:
+            if event['content']['msgtype'] == "m.text":
                 self._slack.send_message(self._bridge[event['room_id']], event['content']['body'])
+
+            if event['content']['msgtype'] in ["m.image", 'm.file']:
+                image_url = self._client.api.get_download_url(event['content']['url'])
+                self._slack.send_file(self._bridge[event['room_id']], file_url=image_url, file_title=event['content']['body'])

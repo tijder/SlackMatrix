@@ -1,4 +1,5 @@
 import time
+from urllib import request
 
 from slackclient import SlackClient
 
@@ -38,6 +39,15 @@ class Slack:
             channel=room_id,
             text=text,
             as_user=True
+        )
+
+    def send_file(self, room_id: str, file_url: str, file_title: str):
+        file_content = request.urlopen(file_url).read()
+        self.sc.api_call(
+            "files.upload",
+            channels=room_id,
+            file=file_content,
+            title=file_title
         )
 
     def __mark_read(self, room_id: str, ts: str):
