@@ -6,11 +6,13 @@ from slackclient import SlackClient
 class Slack:
     bridge = {}
     matrix = None
+    token = None
 
     def __init__(self, slack_token: str, user_id: str) -> None:
         super().__init__()
 
         self.sc = SlackClient(slack_token)
+        self.token = slack_token
         self.user_id = user_id
 
         # print(self.sc.api_call(
@@ -56,9 +58,9 @@ class Slack:
 
     def __process_event_in_room(self, event):
         print(event)
-        # if event['type'] == "message":
-        if event['type'] == "message" and ('user' not in event or event['user'] != self.user_id):
-            if 'text' in event and event['channel'] in self.bridge:
+        if event['type'] == "message":
+        # if event['type'] == "message" and ('user' not in event or event['user'] != self.user_id):
+            if ('text' in event or 'files' in event) and event['channel'] in self.bridge:
                 name = "Bot"
                 avatar_url = None
                 if 'user' in event:
@@ -66,7 +68,13 @@ class Slack:
                     name = user['user']['real_name']
                     avatar_url = user['user']['profile']['image_192']
 
-                self.matrix.send_message(self.bridge[event['channel']], event['text'], name=name, avatar_url=avatar_url)
+                if 'files' in event:
+                    for file in event['files']:
+                        if 'url_private_download' in file and 'title' in file and 'mimetype' in file:
+                            self.matrix.send_message(self.bridge[event['channel']], None, name=name, avatar_url=avatar_url, file_url=file['url_private_download'], file_name=file['title'], file_mimetype=file['mimetype'], file_authorization="Bearer " + self.token)
+
+                if 'text' in event:
+                    self.matrix.send_message(self.bridge[event['channel']], event['text'], name=name, avatar_url=avatar_url)
 
                 if 'ts' in event:
                     self.__mark_read(event['channel'], event['ts'])
