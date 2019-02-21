@@ -58,8 +58,8 @@ class Slack:
 
     def __process_event_in_room(self, event):
         print(event)
-        if event['type'] == "message":
-        # if event['type'] == "message" and ('user' not in event or event['user'] != self.user_id):
+        # if event['type'] == "message":
+        if event['type'] == "message" and ('user' not in event or event['user'] != self.user_id):
             if ('text' in event or 'files' in event) and event['channel'] in self.bridge:
                 name = "Bot"
                 avatar_url = None
